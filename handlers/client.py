@@ -1,11 +1,12 @@
 from telegram import Update
 from telegram.ext import *
 #from bot import updater
-from keyboard.client import reply_markup, reply_markup_trans, inline_kayboard
+from keyboard.client import *
 import keyboard.client
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 import requests
-
+from bot import data_base
+from apps.state import *
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
@@ -49,11 +50,25 @@ async def comm_trans(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def menu (update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data == '1':
+    if query.data == 'trans':
         return await translate(update=update, context=context)
-#    elif query.data == '2':
+    elif query.data == 'yes_reg':
+        return await reg_in_db(update=update, context=context)
 
+async def registration (update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Хотите зарегистрироваться?", reply_markup=reg_yes_no_kayboard,
+    )
 
+async def reg_in_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if data_base.check_user(update.effective_user.id) is False:
+        data_base.add_user(update.effective_user.id)
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="Вы добавлены в базу")
+    else:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Вы уже зарегистрированы")
 
 #-------------------------------------------------------------------
 
@@ -61,6 +76,7 @@ async def menu (update: Update, context: ContextTypes.DEFAULT_TYPE):
 #------------------Registr handlers------------------
 
 start_handler = CommandHandler('start', start)
+registration_handler = CommandHandler('registration', registration)
 #echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), echo)
 caps_handler = CommandHandler('caps', caps)
 translate_handler = MessageHandler(filters.Text('Перевод')& (~filters.COMMAND), translate_button)
